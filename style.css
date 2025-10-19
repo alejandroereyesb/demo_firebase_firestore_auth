@@ -62,6 +62,9 @@ input[type="submit"]:hover {
     border-radius: var(--inner-border-radius);
 }
 
+.card > img {
+    max-width: 250px;
+}
 #button-set {
     display: flex;
     justify-content: space-around;

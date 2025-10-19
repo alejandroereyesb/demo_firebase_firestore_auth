@@ -1,29 +1,12 @@
 let firebaseConfig = { //objeto de configuración de Firebase
+
 };
 
 firebase.initializeApp(firebaseConfig);// Inicializaar app Firebase
 
 const db = firebase.firestore();// db representa mi BBDD //inicia Firestore
 
-//Función auxiliar para pintar una foto en el album
-const printPhoto = (title, url, docId) => {
-  let card = document.createElement('article');
-  card.setAttribute('class', 'card');
-  let picture = document.createElement('img');
-  picture.setAttribute('src', url);
-  picture.setAttribute('style', 'max-width:250px');
-  let caption = document.createElement('p');
-  caption.innerHTML = title;
-  let id = document.createElement('p');
-  id.innerHTML = docId;
-  const album = document.getElementById('album');
-  card.appendChild(picture);
-  card.appendChild(caption);
-  card.appendChild(id);
-  album.appendChild(card);
-};
-
-//Create
+// Create element
 const createPicture = (picture) => {
   db.collection("album")
     .add(picture)
@@ -34,7 +17,7 @@ const createPicture = (picture) => {
     .catch((error) => console.error("Error adding document: ", error));
 };
 
-//Read all
+// Read all
 const readAll = () => {
   // Limpia el album para mostrar el resultado
   cleanAlbum();
@@ -51,7 +34,7 @@ const readAll = () => {
     .catch(() => console.log('Error reading documents'));;
 };
 
-//Delete
+// Delete element
 const deletePicture = () => {
   const id = prompt('Introduce el ID a borrar');
   db.collection('album').doc(id).delete().then(() => {
@@ -64,17 +47,53 @@ const deletePicture = () => {
     .catch(() => console.log('Error borrando documento'));
 };
 
-//Clean 
+// Clean DOM
 const cleanAlbum = () => {
   document.getElementById('album').innerHTML = "";
 };
 
-//Show on page load
+// Show on page load
 /* readAll(); */
+
+
+// Print element
+const printPhoto = (title, url, docId, isFavorite = false) => {
+  let card = document.createElement('article');
+  card.setAttribute('class', 'card');
+  let picture = document.createElement('img');
+  picture.setAttribute('src', url);
+  let caption = document.createElement('p');
+  caption.innerHTML = title;
+  let id = document.createElement('p');
+  id.innerHTML = docId;
+
+  const album = document.getElementById('album');
+  card.appendChild(picture);
+  card.appendChild(caption);
+  card.appendChild(id);
+
+  const user = firebase.auth().currentUser;
+  if (user) {
+    if (!isFavorite) { // Si no es favorito, no se muestra el botón
+      let favoriteButton = document.createElement('button');
+      favoriteButton.innerText = 'Add Favorite';
+      favoriteButton.addEventListener('click', () => addToFavorites(docId, { title, url }));
+      card.appendChild(favoriteButton);
+    } else {
+      let removeButton = document.createElement('button');
+      removeButton.innerText = 'Delete favorite';
+      removeButton.addEventListener('click', () => removeFromFavorites(docId));
+      card.appendChild(removeButton);
+    }
+  }
+
+  album.appendChild(card);
+};
+
 
 //**********EVENTS**********
 
-//Create
+// Create
 document.getElementById("create").addEventListener("click", () => {
   const title = prompt("Introduce el título de tu foto");
   const url = prompt("Introduce la url de tu foto");
@@ -88,48 +107,41 @@ document.getElementById("create").addEventListener("click", () => {
   });
 });
 
-//Read all
+// Read all
 document.getElementById("read-all").addEventListener("click", () => {
   readAll();
 });
 
-//Read one
+// Read one
 document.getElementById('read-one').addEventListener("click", () => {
   const id = prompt("Introduce el id a buscar");
   readOne(id);
 });
 
-//Delete one
+// Delete one
 document.getElementById('delete').addEventListener('click', () => {
   deletePicture();
 });
 
-//Clean
+// Clean
 document.getElementById('clean').addEventListener('click', () => {
   cleanAlbum();
 });
 
 //********FIRESTORE USERS COLLECTION******
-
+// Create user
 const createUser = (user) => {
   db.collection("users")
-    .add(user)
-    .then((docRef) => console.log("Document written with ID: ", docRef.id))
-    .catch((error) => console.error("Error adding document: ", error));
+    .doc(user.id) // Usar el UID del usuario como ID del documento en Firestore
+    .set({
+      email: user.email,
+      favorites: [] // Crear array de favoritos vacío
+    })
+    .then(() => console.log("Usuario creado con ID: ", user.id))
+    .catch((error) => console.error("Error creando usuario: ", error));
 };
 
-/* const readAllUsers = (born) => {
-  db.collection("users")
-    .where("first", "==", born)
-    .get()
-    .then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
-        console.log(doc.data());
-      });
-    });
-}; */
-
-// Read ONE
+// Read ONE element by ID
 function readOne(id) {
   // Limpia el album para mostrar el resultado
   cleanAlbum();
@@ -151,10 +163,104 @@ function readOne(id) {
 
 }
 
+
+
+// Favoritos
+// Add favite
+const addToFavorites = (photoId, photoData) => {
+  const user = firebase.auth().currentUser;
+
+  if (!user) {
+    alert('Debes estar logueado para añadir a favoritos.');
+    return;
+  }
+
+  const userRef = db.collection('users').doc(user.uid);
+
+  userRef.get()
+    .then((doc) => {
+      if (doc.exists) {
+        const favorites = doc.data().favorites;
+        const updatedFavorites = [...favorites, { id: photoId, ...photoData }]; // Añadir la foto al array manualmente
+
+        userRef.update({ favorites: updatedFavorites })
+          .then(() => {
+            alert('Foto añadida a favoritos.');
+          });
+      } else {
+        console.log('No se encontró el usuario.');
+      }
+    })
+    .catch((error) => {
+      console.error('Error añadiendo a favoritos: ', error);
+    });
+    alert('Foto añadida a favoritos.');
+};
+
+// Delete favorite
+const removeFromFavorites = (photoId) => {
+  const user = firebase.auth().currentUser;
+
+  if (!user) {
+    alert('Debes estar logueado para borrar favoritos.');
+    return;
+  }
+
+  const userRef = db.collection('users').doc(user.uid);
+  
+  userRef.get()
+    .then((doc) => {
+      if (doc.exists) {
+        const favorites = doc.data().favorites;
+        const updatedFavorites = favorites.filter(fav => fav.id !== photoId); // Remove the photo by ID
+
+        userRef.update({ favorites: updatedFavorites }) 
+          .then(() => {
+            alert('Foto eliminada de favoritos.');
+            showFavorites(); // Update the favorites view
+          });
+      } else {
+        console.log('No se encontró el usuario.');
+      }
+    })
+    .catch((error) => {
+      console.error('Error eliminando de favoritos: ', error);
+    });
+};
+
+// Print favorites
+const showFavorites = () => {
+  const user = firebase.auth().currentUser;
+
+  if (!user) {
+    alert('Debes estar logueado para ver tus favoritos.');
+    return;
+  }
+
+  const userRef = db.collection('users').doc(user.uid);
+
+  userRef.get()
+    .then((doc) => {
+      if (doc.exists) {
+        const favorites = doc.data().favorites || [];
+        cleanAlbum(); // Limpia el álbum para mostrar los favoritos
+        favorites.forEach((favorite) => {
+          printPhoto(favorite.title, favorite.url, favorite.id, true); // Pasar isFavorite como true
+        });
+      } else {
+        console.log('No se encontró el usuario.');
+      }
+    })
+    .catch((error) => {
+      console.error('Error obteniendo favoritos: ', error);
+    });
+};
+
+// Evento para el botón "Ver Favoritos"
+document.getElementById('show-favorites').addEventListener('click', showFavorites);
+
 /**************Firebase Auth*****************/
-
-/*
-
+// Sign up
 const signUpUser = (email, password) => {
   firebase
     .auth()
@@ -168,8 +274,7 @@ const signUpUser = (email, password) => {
       // Saves user in firestore
       createUser({
         id: user.uid,
-        email: user.email,
-        message: "hola!"
+        email: user.email
       });
 
     })
@@ -188,7 +293,7 @@ document.getElementById("form1").addEventListener("submit", function (event) {
   pass === pass2 ? signUpUser(email, pass) : alert("error password");
 })
 
-
+// Sign in
 const signInUser = (email, password) => {
   firebase.auth().signInWithEmailAndPassword(email, password)
     .then((userCredential) => {
@@ -206,6 +311,7 @@ const signInUser = (email, password) => {
     });
 }
 
+// Sign out user
 const signOut = () => {
   let user = firebase.auth().currentUser;
 
@@ -215,7 +321,6 @@ const signOut = () => {
     console.log("hubo un error: " + error);
   });
 }
-
 
 document.getElementById("form2").addEventListener("submit", function (event) {
   event.preventDefault();
@@ -236,6 +341,3 @@ firebase.auth().onAuthStateChanged(function (user) {
     document.getElementById("message").innerText = `No hay usuarios en el sistema`;
   }
 });
-
-*/
-

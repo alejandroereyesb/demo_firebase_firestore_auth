@@ -4,15 +4,21 @@
 
 Esta demo consta de un album de fotos y de dos formularios para la autenticación de usuarios. 
 
-- El botón create permite añadir una foto a nuestra base de datos, introduciendo en el prompt un título y una url de una imagen.
+- El botón `Create` permite añadir una foto a nuestra base de datos, introduciendo en el prompt un título y una url de una imagen.
 
-- El botón Read All muestra todas las fotos guardadas en nuestra base de datos junto con su título e id 
+- El botón `Read All` muestra todas las fotos guardadas en nuestra base de datos junto con su título e id 
 
-- El botón Clear permite borrar las fotos del DOM. No elimina de la base de datos.
+- El botón `Clear` permite borrar las fotos del DOM. No elimina de la base de datos.
 
-- El botón Find One by Id muestra la foto correspondiente al Id introducido. 
+- El botón `Find One by Id` muestra la foto correspondiente al Id introducido. 
 
-- El botón Delete permite borrar la foto especificada de la base de datos.
+- El botón `Delete` permite borrar la foto especificada de la base de datos.
+
+- El botón `Show favorites` permite visualizar los favoritos del usuario logado en el sistema
+
+- Los usuarios autenticados pueden ver el botón `Add favorite`, que permite añadir a favoritos el elemento seleccionado
+
+- Los usuarios autenticados pueden ver el botón `Delete favorite`, que permite eliminar un favorito de su lista al pulsarlo
 
 
 ## Funcionalidades Authentication
